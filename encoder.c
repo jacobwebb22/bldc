@@ -377,23 +377,25 @@ void encoder_reset(void) {
 	if (palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)) {
 		const unsigned int cnt = HW_ENC_TIM->CNT;
 		static int bad_pulses = 0;
-		const unsigned int lim = enc_counts / 20;
+		const int bad_pulse_lim = 5;
+		const unsigned int lim = 20;
 
 		if (index_found) {
 			// Some plausibility filtering.
 			if (cnt > (enc_counts - lim) || cnt < lim) {
-				HW_ENC_TIM->CNT = 0;
+				//HW_ENC_TIM->CNT = 0;
 				bad_pulses = 0;
 			} else {
 				bad_pulses++;
 
-				if (bad_pulses > 5) {
-					index_found = 0;
+				if (bad_pulses > bad_pulse_lim) {
+					index_found = false;
 				}
 			}
 		} else {
-			HW_ENC_TIM->CNT = 0;
-			index_found = true;
+			//HW_ENC_TIM->CNT = 0;
+			if (cnt > (enc_counts - lim) || cnt < lim) {index_found = true;}
+				else {index_found = false;}
 			bad_pulses = 0;
 		}
 	}

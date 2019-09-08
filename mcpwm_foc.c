@@ -1073,7 +1073,7 @@ void mcpwm_foc_get_current_offsets(volatile int *curr0_offset, volatile int *cur
  */
 void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted) {
 	mc_interface_lock();
-
+	print = true;
 	m_phase_override = true;
 	m_id_set = current;
 	m_iq_set = 0.0;
