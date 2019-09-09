@@ -2699,16 +2699,16 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	float output = p_term + i_term + d_term;
 	utils_truncate_number(&output, -1.0, 1.0);
 
-	if (encoder_is_configured()) {
-		if (encoder_index_found()) {
+//	if (encoder_is_configured()) {
+//		if (encoder_index_found()) {
 			m_iq_set = output * m_conf->lo_current_max;
-		} else {
+//		} else {
 			// Rotate the motor with 40 % power until the encoder index is found.
-			m_iq_set = 0.4 * m_conf->lo_current_max;
-		}
-	} else {
-		m_iq_set = output * m_conf->lo_current_max;
-	}
+//			m_iq_set = 0.4 * m_conf->lo_current_max;
+//		}
+//	} else {
+//		m_iq_set = output * m_conf->lo_current_max;
+//	}
 }
 
 static void run_pid_control_speed(float dt) {
