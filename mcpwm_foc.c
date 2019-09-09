@@ -1969,12 +1969,13 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		switch (m_conf->foc_sensor_mode) {
 		case FOC_SENSOR_MODE_ENCODER:
-			if (encoder_index_found()) {
-				m_motor_state.phase = correct_encoder(m_phase_now_observer, m_phase_now_encoder, m_pll_speed);
-			} else {
+//			if (encoder_index_found()) {
+//				m_motor_state.phase = correct_encoder(m_phase_now_observer, m_phase_now_encoder, m_pll_speed);
+				m_motor_state.phase = m_phase_now_encoder;
+//			} else {
 				// Rotate the motor in open loop if the index isn't found.
-				m_motor_state.phase = m_phase_now_encoder_no_index;
-			}
+//				m_motor_state.phase = m_phase_now_encoder_no_index;
+//			}
 
 			if (!m_phase_override) {
 				id_set_tmp = 0.0;
@@ -2117,7 +2118,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		switch (m_conf->foc_sensor_mode) {
 		case FOC_SENSOR_MODE_ENCODER:
-			m_motor_state.phase = correct_encoder(m_phase_now_observer, m_phase_now_encoder, m_pll_speed);
+//			m_motor_state.phase = correct_encoder(m_phase_now_observer, m_phase_now_encoder, m_pll_speed);
+			m_motor_state.phase = m_phase_now_encoder;
 			break;
 		case FOC_SENSOR_MODE_HALL:
 			m_phase_now_observer = correct_hall(m_phase_now_observer, m_pll_speed, dt);
