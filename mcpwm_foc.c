@@ -2162,27 +2162,27 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	// Track position control angle
 	// TODO: Have another look at this.
-//	float angle_now = 0.0;
-//	if (encoder_is_configured()) {
-//		angle_now = enc_ang;
-//	} else {
-//		angle_now = m_motor_state.phase * (180.0 / M_PI);
-//	}
+	float angle_now = 0.0;
+	if (encoder_is_configured()) {
+		angle_now = enc_ang;
+	} else {
+		angle_now = m_motor_state.phase * (180.0 / M_PI);
+	}
 
-//	if (m_conf->p_pid_ang_div > 0.98 && m_conf->p_pid_ang_div < 1.02) {
-//		m_pos_pid_now = angle_now;
-//	} else {
-//		static float angle_last = 0.0;
-//		float diff_f = utils_angle_difference(angle_now, angle_last);
-//		angle_last = angle_now;
-//		m_pos_pid_now += diff_f / m_conf->p_pid_ang_div;
-//		utils_norm_angle((float*)&m_pos_pid_now);
-//	}
+	if (m_conf->p_pid_ang_div > 0.98 && m_conf->p_pid_ang_div < 1.02) {
+		m_pos_pid_now = angle_now;
+	} else {
+		static float angle_last = 0.0;
+		float diff_f = utils_angle_difference(angle_now, angle_last);
+		angle_last = angle_now;
+		m_pos_pid_now += diff_f / m_conf->p_pid_ang_div;
+		utils_norm_angle((float*)&m_pos_pid_now);
+	}
 
 	// Run position control
 	if (m_state == MC_STATE_RUNNING) {
-		//run_pid_control_pos(m_pos_pid_now, m_pos_pid_set, dt);
-		run_pid_control_pos(enc_ang, m_pos_pid_set, dt);
+		run_pid_control_pos(m_pos_pid_now, m_pos_pid_set, dt);
+//		run_pid_control_pos(enc_ang, m_pos_pid_set, dt);
 	}
 
 #ifdef AD2S1205_SAMPLE_GPIO
@@ -2653,7 +2653,6 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	static float prev_error = 0;
 	float p_term;
 	float d_term;
-	static float d_filter = 0.0;
 
 	// PID is off. Return.
 	if (m_control_mode != CONTROL_MODE_POS) {
@@ -2665,15 +2664,11 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	// Compute parameters
 	float error = utils_angle_difference(angle_set, angle_now);
 
-
 	if (encoder_is_configured()) {
 		if (m_conf->foc_encoder_inverted) {
 			error = -error;
 		}
 	}
-
-	// Filter Error
-	error += m_conf->p_pid_kd_filter * (error - prev_error);
 
 	p_term = error * m_conf->p_pid_kp;
 	i_term += error * (m_conf->p_pid_ki * dt);
@@ -2682,20 +2677,19 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	// happens at low speed when the position resolution is low and several
 	// control iterations run without position updates.
 	// TODO: Are there problems with this approach?
-	
-//	dt_int += dt;
-//	if (error == prev_error) {
-//		d_term = 0.0;
-//	} else {
-//		d_term = (error - prev_error) * (m_conf->p_pid_kd / dt_int);
-//		dt_int = 0.0;
-//	}
-	d_term = (error - prev_error) * (m_conf->p_pid_kd / dt);
+	static float dt_int = 0.0;
+	dt_int += dt;
+	if (error == prev_error) {
+		d_term = 0.0;
+	} else {
+		d_term = (error - prev_error) * (m_conf->p_pid_kd / dt_int);
+		dt_int = 0.0;
+	}
 
 	// Filter D
-	
-//	UTILS_LP_FAST(d_filter, d_term, m_conf->p_pid_kd_filter);
-//	d_term = d_filter;
+	static float d_filter = 0.0;
+	UTILS_LP_FAST(d_filter, d_term, m_conf->p_pid_kd_filter);
+	d_term = d_filter;
 
 
 	// I-term wind-up protection
