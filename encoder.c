@@ -75,7 +75,7 @@ typedef enum {
 } encoder_mode;
 
 // Private variables
-static bool index_found = false;
+static bool index_found = true;
 static uint32_t enc_counts = 10000;
 static encoder_mode mode = ENCODER_MODE_NONE;
 static float last_enc_angle = 0.0;
@@ -479,7 +479,8 @@ void encoder_set_counts(uint32_t counts) {
  * True if the index is found, false otherwise.
  */
 bool encoder_index_found(void) {
-	return index_found;
+	//return index_found;
+	return true;
 }
 
 // Software SPI
