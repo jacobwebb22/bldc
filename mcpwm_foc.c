@@ -2159,29 +2159,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	m_tachometer += diff;
 	m_tachometer_abs += abs(diff);
-/*
-	// Track position control angle
-	// TODO: Have another look at this.
-	float angle_now = 0.0;
-	if (encoder_is_configured()) {
-		angle_now = enc_ang;
-	} else {
-		angle_now = m_motor_state.phase * (180.0 / M_PI);
-	}
 
-	if (m_conf->p_pid_ang_div > 0.98 && m_conf->p_pid_ang_div < 1.02) {
-		m_pos_pid_now = angle_now;
-	} else {
-		static float angle_last = 0.0;
-		float diff_f = utils_angle_difference(angle_now, angle_last);
-		angle_last = angle_now;
-		m_pos_pid_now += diff_f / m_conf->p_pid_ang_div;
-		utils_norm_angle((float*)&m_pos_pid_now);
-	}
-*/
 	// Run position control
 	if (m_state == MC_STATE_RUNNING) {
-//		run_pid_control_pos(m_pos_pid_now, m_pos_pid_set, dt);
 		run_pid_control_pos(enc_ang, m_pos_pid_set, dt);
 	}
 
@@ -2672,20 +2652,6 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 
 	p_term = error * m_conf->p_pid_kp;
 	i_term += error * (m_conf->p_pid_ki * dt);
-
-	// Average DT for the D term when the error does not change. This likely
-	// happens at low speed when the position resolution is low and several
-	// control iterations run without position updates.
-	// TODO: Are there problems with this approach?
-/*	static float dt_int = 0.0;
-	dt_int += dt;
-	if (error == prev_error) {
-		d_term = 0.0;
-	} else {
-		d_term = (error - prev_error) * (m_conf->p_pid_kd / dt_int);
-		dt_int = 0.0;
-	}
-*/
 	d_term = (error - prev_error) * (m_conf->p_pid_kd / dt);
 
 	// Filter D
@@ -2693,39 +2659,15 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	UTILS_LP_FAST(d_filter, d_term, m_conf->p_pid_kd_filter);
 	d_term = d_filter;
 
-
-	// I-term wind-up protection
-	// Why are you doing this and why is it a value of 1? This method ingnores contributions from individual terms.
-//	utils_truncate_number_abs(&p_term, 1.0);
-//	utils_truncate_number_abs(&i_term, 1.0 - fabsf(p_term));
-
 	// Store previous error
 	prev_error = error;
-/*
-	// Calculate output
-	// Why are you truncating again to 1? It looks like you want to make the output some percentage of max output current
-	// but that means you have to arbitrarily truncate it or map it to some unknown value. Instead just let the output
-	// be whatever it wants to be and truncate it to the max current. If it saturates, so what, just change the gains.
-	float output = p_term + i_term + d_term;
-	utils_truncate_number(&output, -1.0, 1.0);
-*/
-
 	// Calculate output the right way
 	float output = p_term + i_term + d_term;
 	//utils_truncate_number(&output, -m_conf->lo_current_max, m_conf->lo_current_max);
-	utils_truncate_number(&output, -6, 6);
-	m_iq_set = output;
 
-//	if (encoder_is_configured()) {
-//		if (encoder_index_found()) {
-//			m_iq_set = output * m_conf->lo_current_max;
-//		} else {
-			// Rotate the motor with 40 % power until the encoder index is found.
-//			m_iq_set = 0.4 * m_conf->lo_current_max;
-//		}
-//	} else {
-//		m_iq_set = output * m_conf->lo_current_max;
-//	}
+	//  Changing the use of "m_conf->p_pid_ang_div" to be the max pid output current. Will change later to trackable value.
+	utils_truncate_number(&output, -m_conf->p_pid_ang_div, m_conf->p_pid_ang_div);
+	m_iq_set = output;
 }
 
 static void run_pid_control_speed(float dt) {
