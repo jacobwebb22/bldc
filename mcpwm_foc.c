@@ -134,7 +134,7 @@ static void run_pid_control_speed(float dt);
 static void stop_pwm_hw(void);
 static void start_pwm_hw(void);
 static int read_hall(void);
-static float correct_encoder(float obs_angle, float enc_angle, float speed);
+//static float correct_encoder(float obs_angle, float enc_angle, float speed);
 static float correct_hall(float angle, float speed, float dt);
 
 // Threads
@@ -1092,8 +1092,10 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	float ratio_old = m_conf->foc_encoder_ratio;
 
 	m_conf->foc_encoder_offset = 0.0;
-	m_conf->foc_encoder_inverted = false;
-	m_conf->foc_encoder_ratio = 1.0;
+//	m_conf->foc_encoder_inverted = false;
+//	m_conf->foc_encoder_ratio = 1.0;
+
+/*
 
 	// Find index
 	int cnt = 0;
@@ -1114,7 +1116,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	}
 
 	if (print) {
-		commands_printf("Index found");
+		commands_printf("Index Search Done, Rotating 1 phase rotation...");
 	}
 
 	// Rotate
@@ -1194,8 +1196,15 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	*ratio = roundf(((2.0 / 3.0) * 180.0) /
 			fabsf(diff));
 
+	// THIS IS A TEST
+	*ratio = 13.0;
+
 	m_conf->foc_encoder_inverted = *inverted;
 	m_conf->foc_encoder_ratio = *ratio;
+
+	if (print) {
+		commands_printf("Ratio: %.2f", (double)m_conf->foc_encoder_ratio);
+	}
 
 	if (print) {
 		commands_printf("Inversion and ratio detected");
@@ -1212,20 +1221,47 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 		commands_printf("Enc: %.2f", (double)encoder_read_deg());
 	}
 
-	const int it_ofs = m_conf->foc_encoder_ratio * 3.0;
 	s_sum = 0.0;
 	c_sum = 0.0;
+	const int it_ofs = m_conf->foc_encoder_ratio * 3;
+*/
+	
+	*inverted = true;
+	*ratio = 26.0;
+	m_conf->foc_encoder_inverted = *inverted;
+	m_conf->foc_encoder_ratio = *ratio;
+	const int it_ofs = m_conf->foc_encoder_ratio * 3;
+	float s_sum = 0.0;
+	float c_sum = 0.0;
+	
+	// Rotate for Sync
+	for (float i = 0.0; i < 2.0 * M_PI; i += (2.0 * M_PI) / 500.0) {
+		m_phase_now_override = i;
+		chThdSleepMilliseconds(1);
+	}
+
+	if (print) {
+		commands_printf("-------------Rotated For Sync------------");
+		commands_printf("Enc: %.2f", (double)encoder_read_deg());
+		commands_printf("-----------------------------------------");
+	}
+
+	//  Rotate Forwards
+
+	commands_printf("Ratio Test %.2f", (double)m_conf->foc_encoder_ratio);
 
 	for (int i = 0;i < it_ofs;i++) {
-		float step = (2.0 * M_PI * m_conf->foc_encoder_ratio) / ((float)it_ofs);
+		float step = (2.0 * M_PI / 3.0);
 		float override = (float)i * step;
 
 		while (m_phase_now_override != override) {
 			utils_step_towards((float*)&m_phase_now_override, override, step / 100.0);
 			chThdSleepMilliseconds(4);
 		}
+		//commands_printf("Override %.2f", (double)override);
+		//commands_printf("Phase Override %.2f", (double)m_phase_now_override);
 
-		chThdSleepMilliseconds(100);
+		chThdSleepMilliseconds(200);
 
 		float angle_diff = utils_angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
 		float s, c;
@@ -1234,12 +1270,15 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 		c_sum += c;
 
 		if (print) {
-			commands_printf("%.2f", (double)(angle_diff * 180.0 / M_PI));
+			commands_printf("%.2f, %.2f, %.2f", (double)(m_phase_now_encoder * 180.0 / M_PI), (double)(m_phase_now_override * 180.0 / M_PI), (double)(angle_diff * 180.0 / M_PI));
+			//commands_printf("%.2f", (double)(angle_diff * 180.0 / M_PI));
 		}
 	}
 
+	// Rotate Backwards
+
 	for (int i = it_ofs;i > 0;i--) {
-		float step = (2.0 * M_PI * m_conf->foc_encoder_ratio) / ((float)it_ofs);
+		float step = (2.0 * M_PI / 3.0);
 		float override = (float)i * step;
 
 		while (m_phase_now_override != override) {
@@ -1247,7 +1286,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 			chThdSleepMilliseconds(4);
 		}
 
-		chThdSleepMilliseconds(100);
+		chThdSleepMilliseconds(200);
 
 		float angle_diff = utils_angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
 		float s, c;
@@ -1256,7 +1295,8 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 		c_sum += c;
 
 		if (print) {
-			commands_printf("%.2f", (double)(angle_diff * 180.0 / M_PI));
+			//commands_printf("%.2f", (double)(angle_diff * 180.0 / M_PI));
+			commands_printf("%.2f, %.2f, %.2f", (double)(m_phase_now_encoder * 180.0 / M_PI), (double)(m_phase_now_override * 180.0 / M_PI), (double)(angle_diff * 180.0 / M_PI));
 		}
 	}
 
@@ -2787,7 +2827,7 @@ static int read_hall(void) {
 			(utils_middle_of_3_int(h2_1, h2_2, h2_3) << 1) |
 			(utils_middle_of_3_int(h3_1, h3_2, h3_3) << 2);
 }
-
+/*
 static float correct_encoder(float obs_angle, float enc_angle, float speed) {
 	float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
 
@@ -2805,7 +2845,7 @@ static float correct_encoder(float obs_angle, float enc_angle, float speed) {
 
 	return m_using_encoder ? enc_angle : obs_angle;
 }
-
+*/
 static float correct_hall(float angle, float speed, float dt) {
 	static int ang_hall_int_prev = -1;
 	float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
