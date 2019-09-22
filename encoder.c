@@ -169,13 +169,16 @@ void encoder_init_abi(uint32_t counts) {
 	TIM_EncoderInterfaceConfig (HW_ENC_TIM, TIM_EncoderMode_TI12,
 			TIM_ICPolarity_Rising,
 			TIM_ICPolarity_Rising);
-	TIM_SetAutoreload(HW_ENC_TIM, enc_counts - 1);
+	TIM_SetAutoreload(HW_ENC_TIM, (3 * enc_counts) - 1);
 
 	// Filter
 	HW_ENC_TIM->CCMR1 |= 6 << 12 | 6 << 4;
 	HW_ENC_TIM->CCMR2 |= 6 << 4;
 
 	TIM_Cmd(HW_ENC_TIM, ENABLE);
+
+	// Set start position to half of total readable range.
+	HW_ENC_TIM->CNT = 3 * enc_counts / 2;
 
 	// Interrupt on index pulse
 
@@ -376,10 +379,13 @@ void encoder_reset(void) {
 	__NOP();
 	if (palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)) {
 		const unsigned int cnt = HW_ENC_TIM->CNT;
-		static int bad_pulses = 0;
-		const int bad_pulse_lim = 5;
+		//static int bad_pulses = 0;
+		//const int bad_pulse_lim = 5;
 		const unsigned int lim = 20;
 
+		if (cnt > ((3 * enc_counts) - lim) || cnt < lim) { HW_ENC_TIM->CNT = 0; }
+
+		/*
 		if (index_found) {
 			// Some plausibility filtering.
 			if (cnt > (enc_counts - lim) || cnt < lim) {
@@ -398,6 +404,7 @@ void encoder_reset(void) {
 				else {index_found = false;}
 			bad_pulses = 0;
 		}
+		*/
 	}
 }
 
@@ -467,8 +474,8 @@ void encoder_tim_isr(void) {
 void encoder_set_counts(uint32_t counts) {
 	if (counts != enc_counts) {
 		enc_counts = counts;
-		TIM_SetAutoreload(HW_ENC_TIM, enc_counts - 1);
-		index_found = false;
+		TIM_SetAutoreload(HW_ENC_TIM, (3 * enc_counts) - 1);
+		//index_found = false;
 	}
 }
 

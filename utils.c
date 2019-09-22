@@ -171,8 +171,8 @@ float utils_angle_difference(float angle1, float angle2) {
 
 	// Faster in most cases
 	float difference = angle1 - angle2;
-	while (difference < -180.0) difference += 2.0 * 180.0;
-	while (difference > 180.0) difference -= 2.0 * 180.0;
+	while (difference < -180.0) { difference += 360.0; }
+	while (difference > 180.0) { difference -= 360.0; }
 	return difference;
 }
 

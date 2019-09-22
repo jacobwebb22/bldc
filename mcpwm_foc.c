@@ -1270,7 +1270,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 		c_sum += c;
 
 		if (print) {
-			commands_printf("%.2f, %.2f, %.2f", (double)(m_phase_now_encoder * 180.0 / M_PI), (double)(m_phase_now_override * 180.0 / M_PI), (double)(angle_diff * 180.0 / M_PI));
+			commands_printf("%.2f %% -- %.2f, %.2f, %.2f", (double)((float)i / (float)it_ofs * 50.0), (double)(m_phase_now_encoder * 180.0 / M_PI), (double)(m_phase_now_override * 180.0 / M_PI), (double)(angle_diff * 180.0 / M_PI));
 			//commands_printf("%.2f", (double)(angle_diff * 180.0 / M_PI));
 		}
 	}
@@ -1296,7 +1296,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 
 		if (print) {
 			//commands_printf("%.2f", (double)(angle_diff * 180.0 / M_PI));
-			commands_printf("%.2f, %.2f, %.2f", (double)(m_phase_now_encoder * 180.0 / M_PI), (double)(m_phase_now_override * 180.0 / M_PI), (double)(angle_diff * 180.0 / M_PI));
+			commands_printf("%.2f %% -- %.2f, %.2f, %.2f", (double)(50.0 + (((float)it_ofs - (float)i + 1) / (float)it_ofs * 50.0)), (double)(m_phase_now_encoder * 180.0 / M_PI), (double)(m_phase_now_override * 180.0 / M_PI), (double)(angle_diff * 180.0 / M_PI));
 		}
 	}
 
@@ -2203,6 +2203,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	// Run position control
 	if (m_state == MC_STATE_RUNNING) {
 		run_pid_control_pos(enc_ang, m_pos_pid_set, dt);
+		//run_pid_control_pos(enc_ang, 180.0, dt);
+		//run_pid_control_pos(encoder_read_deg(), m_pos_pid_set, dt);
 	}
 
 #ifdef AD2S1205_SAMPLE_GPIO
@@ -2474,11 +2476,11 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	state_m->vq = state_m->vq_int + Ierr_q * m_conf->foc_current_kp;
 
 	// Temperature compensation
-	const float t = mc_interface_temp_motor_filtered();
+	//const float t = mc_interface_temp_motor_filtered();
 	float ki = m_conf->foc_current_ki;
-	if (m_conf->foc_temp_comp && t > -5.0) {
-		ki += ki * 0.00386 * (t - m_conf->foc_temp_comp_base_temp);
-	}
+	//if (m_conf->foc_temp_comp && t > -5.0) {
+	//	ki += ki * 0.00386 * (t - m_conf->foc_temp_comp_base_temp);
+	//}
 
 	state_m->vd_int += Ierr_d * (ki * dt);
 	state_m->vq_int += Ierr_q * (ki * dt);
@@ -2682,13 +2684,16 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	}
 
 	// Compute parameters
-	float error = utils_angle_difference(angle_set, angle_now);
-
+	//float error = utils_angle_difference(angle_set, angle_now);
+	float error = angle_set - angle_now;	
+	utils_truncate_number(&error, -180.0, 180.0);
+	
 	if (encoder_is_configured()) {
 		if (m_conf->foc_encoder_inverted) {
 			error = -error;
 		}
 	}
+	
 
 	p_term = error * m_conf->p_pid_kp;
 	i_term += error * (m_conf->p_pid_ki * dt);
@@ -2707,6 +2712,7 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 
 	//  Changing the use of "m_conf->p_pid_ang_div" to be the max pid output current. Will change later to trackable value.
 	utils_truncate_number(&output, -m_conf->p_pid_ang_div, m_conf->p_pid_ang_div);
+	//utils_truncate_number(&output, -m_conf->lo_current_max, m_conf->lo_current_max); // In case max PID current is greater than max rated current.
 	m_iq_set = output;
 }
 
