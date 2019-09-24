@@ -2459,6 +2459,9 @@ static void pll_run(float phase, float dt, volatile float *phase_var,
  */
 static void control_current(volatile motor_state_t *state_m, float dt) {
 	float c,s;
+	const int duty_buff_size = 20;
+	uint32_t duty_buff[ 3 ][ 20 ] = { 0 };
+
 	utils_fast_sincos_better(state_m->phase, &s, &c);
 
 	float max_duty = fabsf(state_m->max_duty);
@@ -2526,6 +2529,30 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	uint32_t duty1, duty2, duty3, top;
 	top = TIM1->ARR;
 	svm(-mod_alpha, -mod_beta, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
+
+	// Running Average Filter of Duty Output
+	int counter = 0;
+	duty_buff[0][counter] = duty1;
+	duty_buff[1][counter] = duty2;
+	duty_buff[2][counter] = duty3;
+
+	uint32_t buff_sum[3] = { 0 };
+	for (int i = 0; i < duty_buff_size; i++) {
+		buff_sum[0] += duty_buff[0][i];
+		buff_sum[1] += duty_buff[1][i];
+		buff_sum[2] += duty_buff[2][i];
+	}
+
+	duty1 = buff_sum[0] / duty_buff_size;
+	duty2 = buff_sum[1] / duty_buff_size;
+	duty3 = buff_sum[2] / duty_buff_size;
+
+	buff_sum[0] = 0;
+	buff_sum[1] = 0;
+	buff_sum[2] = 0;
+	counter++;
+	if (counter >= duty_buff_size) { counter = 0; }
+
 	TIMER_UPDATE_DUTY(duty1, duty2, duty3);
 
 	if(virtual_motor_is_connected() == false){//do not allow to turn on PWM outputs if virtual motor is used
