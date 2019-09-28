@@ -492,7 +492,7 @@ void mc_interface_set_pid_pos(float pos) {
 	m_position_set = pos;
 
 	pos *= DIR_MULT;
-	utils_norm_angle(&pos);
+	//utils_norm_angle(&pos);
 
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
