@@ -160,6 +160,10 @@ void encoder_init_abi(uint32_t counts) {
 	palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
 //	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
 
+	// Enable digital read of rx and tx pins - taken from app_adc.c
+	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
+	//palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
+
 	// Enable timer clock
 	HW_ENC_TIM_CLK_EN();
 
@@ -378,33 +382,10 @@ void encoder_reset(void) {
 	__NOP();
 	__NOP();
 	if (palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)) {
-		const unsigned int cnt = HW_ENC_TIM->CNT;
-		//static int bad_pulses = 0;
-		//const int bad_pulse_lim = 5;
-		const unsigned int lim = 20;
-
-		if (cnt > ((3 * enc_counts) - lim) || cnt < lim) { HW_ENC_TIM->CNT = 0; }
-
-		/*
-		if (index_found) {
-			// Some plausibility filtering.
-			if (cnt > (enc_counts - lim) || cnt < lim) {
-				//HW_ENC_TIM->CNT = 0;
-				bad_pulses = 0;
-			} else {
-				bad_pulses++;
-
-				if (bad_pulses > bad_pulse_lim) {
-					index_found = false;
-				}
-			}
-		} else {
-			//HW_ENC_TIM->CNT = 0;
-			if (cnt > (enc_counts - lim) || cnt < lim) {index_found = true;}
-				else {index_found = false;}
-			bad_pulses = 0;
-		}
-		*/
+		//const unsigned int cnt = HW_ENC_TIM->CNT;
+		//const unsigned int lim = 20;
+		//if (cnt > ((3 * enc_counts) - lim) || cnt < lim) { HW_ENC_TIM->CNT = 0; }
+		//SHUTDOWN_RESET();
 	}
 }
 

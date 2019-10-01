@@ -2202,7 +2202,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	// Run position control
 	if (m_state == MC_STATE_RUNNING) {
-		run_pid_control_pos(enc_ang, m_pos_pid_set, dt);
+		m_pos_pid_now = enc_ang;
+		run_pid_control_pos(m_pos_pid_now, m_pos_pid_set, dt);
 		//run_pid_control_pos(enc_ang, 180.0, dt);
 		//run_pid_control_pos(encoder_read_deg(), m_pos_pid_set, dt);
 	}
@@ -2717,7 +2718,7 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	// Compute parameters
 	//float error = utils_angle_difference(angle_set, angle_now);
 	float error = angle_set - angle_now;	
-	utils_truncate_number(&error, -180.0, 180.0);
+	//utils_truncate_number(&error, -180.0, 180.0);
 	
 	if (encoder_is_configured()) {
 		if (m_conf->foc_encoder_inverted) {
@@ -2739,11 +2740,20 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	prev_error = error;
 	// Calculate output the right way
 	float output = p_term + i_term + d_term;
-	//utils_truncate_number(&output, -m_conf->lo_current_max, m_conf->lo_current_max);
 
-	//  Changing the use of "m_conf->p_pid_ang_div" to be the max pid output current. Will change later to trackable value.
-	utils_truncate_number(&output, -m_conf->p_pid_ang_div, m_conf->p_pid_ang_div);
-	//utils_truncate_number(&output, -m_conf->lo_current_max, m_conf->lo_current_max); // In case max PID current is greater than max rated current.
+	// Read the button pins
+	bool cc_button = false;
+	cc_button = palReadPad(HW_UART_TX_PORT, HW_UART_TX_PIN);
+
+	if (cc_button) {
+		//  Changing the use of "m_conf->p_pid_ang_div" to be the max pid output current.
+		utils_truncate_number(&output, -m_conf->p_pid_ang_div, m_conf->p_pid_ang_div);
+		utils_truncate_number(&output, -m_conf->lo_current_max, m_conf->lo_current_max);
+	}
+	else {
+		utils_truncate_number(&output, -2.0, 2.0);
+	}
+
 	m_iq_set = output;
 }
 

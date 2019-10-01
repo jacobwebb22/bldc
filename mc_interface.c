@@ -1090,7 +1090,8 @@ float mc_interface_read_reset_avg_vq(void) {
 }
 
 float mc_interface_get_pid_pos_set(void) {
-	return m_position_set;
+	//return m_position_set;
+	return mcpwm_foc_get_pid_pos_set();
 }
 
 float mc_interface_get_pid_pos_now(void) {
@@ -1110,8 +1111,8 @@ float mc_interface_get_pid_pos_now(void) {
 		break;
 	}
 
-	ret *= DIR_MULT;
-	utils_norm_angle(&ret);
+	//ret *= DIR_MULT;
+	//utils_norm_angle(&ret);
 
 	return ret;
 }
