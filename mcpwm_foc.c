@@ -2709,6 +2709,7 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	static float prev_error = 0;
 	float p_term;
 	float d_term;
+	static float low_const = 4.0;
 
 	// PID is off. Return.
 	if (m_control_mode != CONTROL_MODE_POS) {
@@ -2749,16 +2750,16 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	if (!cccc_button) { mcpwm_foc_stop_pwm(); }
 
 	// Read State Button
-	bool cc_button = true;
-	//cc_button = palReadPad(HW_UART_TX_PORT, HW_UART_TX_PIN);
+	bool cc_button = false;
+	cc_button = palReadPad(HW_UART_TX_PORT, HW_UART_TX_PIN);
 
-	if (cc_button) {
+	if (!cc_button) {
 		//  Changing the use of "m_conf->p_pid_ang_div" to be the max pid output current.
 		utils_truncate_number(&output, -m_conf->p_pid_ang_div, m_conf->p_pid_ang_div);
 		utils_truncate_number(&output, -m_conf->lo_current_max, m_conf->lo_current_max);
 	}
 	else {
-		utils_truncate_number(&output, -2.0, 2.0);
+		utils_truncate_number(&output, -low_const, low_const);
 	}
 
 	m_iq_set = output;
