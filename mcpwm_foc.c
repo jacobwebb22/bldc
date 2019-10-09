@@ -2743,9 +2743,14 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	// Calculate output the right way
 	float output = p_term + i_term + d_term;
 
-	// Read the button pins
-	bool cc_button = false;
-	cc_button = palReadPad(HW_UART_TX_PORT, HW_UART_TX_PIN);
+	// Check ESTOP
+	bool cccc_button = false;
+	cccc_button = palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3);
+	if (!cccc_button) { mcpwm_foc_stop_pwm(); }
+
+	// Read State Button
+	bool cc_button = true;
+	//cc_button = palReadPad(HW_UART_TX_PORT, HW_UART_TX_PIN);
 
 	if (cc_button) {
 		//  Changing the use of "m_conf->p_pid_ang_div" to be the max pid output current.

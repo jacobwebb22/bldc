@@ -25,6 +25,7 @@
 #include "mc_interface.h"
 #include "utils.h"
 #include "math.h"
+#include "shutdown.h"
 
 // Defines
 #define AS5047P_READ_ANGLECOM		(0x3FFF | 0x4000 | 0x8000) // This is just ones
@@ -150,7 +151,7 @@ void encoder_deinit(void) {
 }
 
 void encoder_init_abi(uint32_t counts) {
-	EXTI_InitTypeDef   EXTI_InitStructure;
+	//EXTI_InitTypeDef   EXTI_InitStructure;
 
 	// Initialize variables
 	index_found = false;
@@ -161,8 +162,9 @@ void encoder_init_abi(uint32_t counts) {
 //	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
 
 	// Enable digital read of rx and tx pins - taken from app_adc.c
-	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
+	//palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
 	//palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
 
 	// Enable timer clock
 	HW_ENC_TIM_CLK_EN();
@@ -183,7 +185,7 @@ void encoder_init_abi(uint32_t counts) {
 
 	// Set start position to half of total readable range.
 	HW_ENC_TIM->CNT = 3 * enc_counts / 2;
-
+/*
 	// Interrupt on index pulse
 
 	// Connect EXTI Line to pin
@@ -198,7 +200,7 @@ void encoder_init_abi(uint32_t counts) {
 
 	// Enable and set EXTI Line Interrupt to the highest priority
 	nvicEnableVector(HW_ENC_EXTI_CH, 0);
-
+*/
 	mode = ENCODER_MODE_ABI;
 }
 
@@ -386,6 +388,7 @@ void encoder_reset(void) {
 		//const unsigned int lim = 20;
 		//if (cnt > ((3 * enc_counts) - lim) || cnt < lim) { HW_ENC_TIM->CNT = 0; }
 		//SHUTDOWN_RESET();
+		mc_interface_set_current(0.0);
 	}
 }
 

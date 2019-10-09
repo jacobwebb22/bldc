@@ -25,7 +25,7 @@
 #include "mcpwm_foc.h"
 #include "hw.h"
 #include "encoder.h"
-#include "shutdown.h"
+//#include "shutdown.h"
 
 CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 	CH_IRQ_PROLOGUE();
@@ -37,7 +37,6 @@ CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 CH_IRQ_HANDLER(HW_ENC_EXTI_ISR_VEC) {
 	if (EXTI_GetITStatus(HW_ENC_EXTI_LINE) != RESET) {
 		//encoder_reset();
-		SHUTDOWN_RESET();
 		// Clear the EXTI line pending bit
 		EXTI_ClearITPendingBit(HW_ENC_EXTI_LINE);
 	}
